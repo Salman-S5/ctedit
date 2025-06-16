@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-Iinclude -Wall
+CFLAGS=-Iinclude -Wall -lncurses
 SRC=$(wildcard src/*.c)
 OBJ=$(SRC:.c=.o)
 TARGET=build/editor
