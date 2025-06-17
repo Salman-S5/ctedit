@@ -1,5 +1,31 @@
-## Todo List
-# A todo list to show finished and ongoing progress.
+# Todo List – Terminal Text Editor (ncurses, C)
 
-1. [x] - Initialize ncurses
-2. [ ] - Allow user input to be displayed
+## Main Priority
+- ## Core Features
+  - [x] Initialize ncurses
+  - [x] Accept user input and display it
+  - [ ] File loading (`open` command or startup filename arg)
+  - [ ] File saving (`:w`-like behavior or Ctrl+S)
+  - [ ] Handle cursor movement (arrow keys / hjkl)
+  - [ ] Basic editing (insert, delete, backspace)
+  - [ ] Scrolling (when text overflows terminal)
+
+## Extras
+- ## Enhancements
+  - [ ] Line numbers on the side
+  - [ ] Status bar (mode, filename, cursor position)
+  - [ ] Support for different modes (Insert / Command, Vim-like)
+  - [ ] Undo / redo stack
+  - [ ] Syntax highlighting (basic, e.g., keywords, comments)
+
+- ## Quality of Life
+  - [ ] Keybindings (Ctrl+Q to quit, Ctrl+S to save, etc.)
+  - [ ] Configurable settings (tab size, color scheme)
+  - [ ] Mouse support (optional via `ncurses` if terminal supports it)
+  - [ ] Search (`/pattern` like in Vim)
+
+- ## Optional / Future Features
+  - [ ] Split view or multiple buffers
+  - [ ] Plugin system or scripting hooks
+  - [ ] Macro recording & replay
+  - [ ] UTF-8/multibyte character support
