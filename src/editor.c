@@ -2,10 +2,21 @@
 #include <stdio.h>
 #include <ncurses.h>
 
+#define INITIAL_LINE_CAPACITY 80
+#define INITIAL_LINE_CAPACITY 100
+
+
 void editor_init() {
+
+    char *lines[INITIAL_LINE_CAPACITY];
+    lines[0] = malloc(80);
+
+    int line_lengths[INITIAL_LINE_CAPACITY];
+    int line_capacity[INITIAL_LINE_CAPACITY];
+
     int ch;
-    char buffer[1024] = {0};
-    int posX = 0;
+    int posY = 0;
+    int posX = line_lengths[posY];
 
     initscr();
     raw();
@@ -20,22 +31,32 @@ void editor_init() {
         else if (ch == KEY_BACKSPACE || ch == 127 || ch == 8) {
             if (posX > 0) {
                 posX--;
-                buffer[posX] = '\0';
-                move(1, 0);
+                lines[posY][posX] = '\0';
+                move(posY, 0);
                 clrtoeol();
-                printw("%s", buffer);
-                move(1, posX);
+                for (int i = 0; i < sizeof(lines); i++) {
+                    printw("%s", lines[i]);
+                }
+                move(posY, posX);
             }
+        }
+
+        else if (ch == '\n') {
+            posY++;
+            move(posY, 0);
         }
         
         else if (ch >= 32 && ch <= 126) {
-            if (posX < sizeof(buffer) - 1) {
-                buffer[posX++] = ch;
-                buffer[posX] = '\0';
-                mvprintw(1, 0, "%s", buffer);
-                move(1, posX);
+            if (posX < sizeof(lines[posX]) - 1) {
+                lines[posY][posX++] = ch;
+                lines[posY][posX+1] = '\0';
+                for (int i = 0; i < sizeof(lines); i++) {
+                    mvprintw(0, 0, "%s", lines[i]);
+                }
+                move(posY, posX);
             }
         }
+
         refresh();
     }
 
