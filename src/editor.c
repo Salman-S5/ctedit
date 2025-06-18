@@ -7,11 +7,27 @@
 #define MAX_LINES 80
 #define INITIAL_LINE_CAPACITY 100
 
+int saveFile(const char *filename, char **lines, int lineCount) {
+    FILE *fp = fopen(filename, "w");
+    if (!fp) {
+        perror("Error opening file");
+        return -1;
+    }
+    for (int i = 0; i < lineCount; i++) {
+        if (lines[i]) {
+            fprintf(fp, "%s\n", lines[i]);
+        }
+    }
+    fclose(fp);
+    return 0;
+}
 
-void editor_init() {
-    char *lines[INITIAL_LINE_CAPACITY];
-    int line_lengths[INITIAL_LINE_CAPACITY];
-    int line_capacity[INITIAL_LINE_CAPACITY];
+
+
+int editor_init(char *filename) {
+    char *lines[MAX_LINES];
+    int line_lengths[MAX_LINES];
+    int line_capacity[MAX_LINES];
 
     for (int i = 0; i < MAX_LINES; i++) {
         lines[i] = malloc(INITIAL_LINE_CAPACITY);
@@ -32,7 +48,25 @@ void editor_init() {
     while (1) {
         ch = getch();
 
-        if (ch == 17) break; // ctrl+q
+        if (ch == 17) break; // Ctrl+Q
+
+
+        else if (ch == 19) {  // Ctrl+S 
+            if (filename == NULL || filename[0] == '\0') {
+                mvprintw(MAX_LINES + 1, 0, "No filename specified. Save aborted.");
+            } else {
+                if (saveFile(filename, lines, posY + 1) == 0) {
+                    mvprintw(MAX_LINES + 1, 0, "File saved.");
+                } else {
+                    mvprintw(MAX_LINES + 1, 0, "Error saving file.");
+                }
+            }
+            clrtoeol();
+            refresh();
+            napms(1000);
+            move(posY, posX);
+            clrtoeol();
+        }
 
         else if (ch == KEY_BACKSPACE || ch == 127 || ch == 8) {
             if (posX > 0) {
@@ -81,5 +115,6 @@ void editor_init() {
     }
 
     endwin();
+    return 0;
 }
 

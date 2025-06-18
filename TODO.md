@@ -4,9 +4,9 @@
 - ## Core Features
   - [x] Initialize ncurses
   - [x] Accept user input and display it
+  - [x] File loading (`open` command or startup filename arg)
+  - [x] File saving (with Ctrl+S)
   - [ ] Basic editing (insert, delete, backspace)
-  - [ ] File loading (`open` command or startup filename arg)
-  - [ ] File saving (`:w`-like behavior or Ctrl+S)
   - [ ] Handle cursor movement (arrow keys / hjkl)
   - [ ] Scrolling (when text overflows terminal)
 

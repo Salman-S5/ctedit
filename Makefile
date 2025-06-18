@@ -13,11 +13,7 @@ $(TARGET): $(SRC)
 	$(CC) $(CFLAGS) $(SRC) -o $(TARGET) $(LDFLAGS)
 
 run: all
-	@if [ -z "$$1" ]; then \
-		$(TARGET); \
-	else \
-		$(TARGET) "$$1"; \
-	fi
+	$(TARGET) $(FILE)
 	
 clean:
 	rm -rf build/*

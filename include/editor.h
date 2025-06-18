@@ -4,7 +4,8 @@
 
 
 
-void editor_init(void);
+int editor_init(char *filename);
+int saveFile(const char *filename, char **lines, int lineCount);
 
 
 
