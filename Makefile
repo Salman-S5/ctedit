@@ -1,16 +1,23 @@
-CC=gcc
-CFLAGS=-Iinclude -Wall -lncurses
-SRC=$(wildcard src/*.c)
-OBJ=$(SRC:.c=.o)
-TARGET=build/editor
+CC = gcc
+CFLAGS = -Iinclude -Wall
+LDFLAGS = -lncurses
+
+SRC = $(wildcard src/*.c)
+OBJ = $(SRC:.c=.o)
+TARGET = build/ctedit
 
 all: $(TARGET)
 
 $(TARGET): $(SRC)
-	$(CC) $(CFLAGS) -o $@ $^
+	@mkdir -p build
+	$(CC) $(CFLAGS) $(SRC) -o $(TARGET) $(LDFLAGS)
 
+run: all
+	@if [ -z "$$1" ]; then \
+		$(TARGET); \
+	else \
+		$(TARGET) "$$1"; \
+	fi
+	
 clean:
 	rm -rf build/*
-
-run:
-	./build/editor

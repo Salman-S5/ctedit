@@ -40,6 +40,16 @@ void editor_init() {
                 lines[posY][posX] = '\0';
                 line_lengths[posY] = posX;
             }
+            else if (posY > 0) {
+                posY--;
+                posX = line_lengths[posY];
+                if (posX > 0) {
+                    posX--;
+                    lines[posY][posX] = '\0';
+                    line_lengths[posY] = posX;
+                }
+            }
+
         }
 
         else if (ch == '\n') {
