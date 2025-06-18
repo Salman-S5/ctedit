@@ -2,6 +2,8 @@
     "files.associations": {
         "*.ejs": "html",
         "string": "c",
-        "format": "c"
+        "format": "c",
+        "stdlib.h": "c",
+        "ncurses.h": "c"
     }
 }
