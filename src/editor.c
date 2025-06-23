@@ -23,7 +23,6 @@ int saveFile(const char *filename, char **lines, int lineCount) {
 }
 
 
-
 int editor_init(char *filename) {
     char *lines[MAX_LINES];
     int line_lengths[MAX_LINES];
@@ -68,7 +67,7 @@ int editor_init(char *filename) {
             clrtoeol();
         }
 
-        else if (ch == KEY_BACKSPACE || ch == 127 || ch == 8) {
+        else if (ch == KEY_BACKSPACE || ch == 127 || ch == 8) { // Backspace
             if (posX > 0) {
                 posX--;
                 lines[posY][posX] = '\0';
@@ -78,20 +77,20 @@ int editor_init(char *filename) {
                 posY--;
                 posX = line_lengths[posY];
                 if (posX > 0) {
-                    posX--;
                     lines[posY][posX] = '\0';
+                    posX--;
                     line_lengths[posY] = posX;
                 }
             }
 
         }
 
-        else if (ch == '\n') {
+        else if (ch == '\n') { // Enter
             posY++;
             posX = 0;
         }
         
-        else if (ch >= 32 && ch <= 126) {
+        else if (ch >= 32 && ch <= 126) { // Text
             if (line_lengths[posY] + 1 >= line_capacity[posY]) {
                 line_capacity[posY] *= 2;
                 lines[posY] = realloc(lines[posY], line_capacity[posY]);
@@ -103,7 +102,7 @@ int editor_init(char *filename) {
         }
 
         clear();
-        for (int i = 0; i <= posY; i++) {
+        for (int i = 0; i <= posY; i++) { // Draw lines
             mvprintw(i, 0, "%s", lines[i]);
         }
         move(posY, posX);

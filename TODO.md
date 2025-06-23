@@ -6,6 +6,7 @@
   - [x] Accept user input and display it
   - [x] File loading (`open` command or startup filename arg)
   - [x] File saving (with Ctrl+S)
+  - [ ] Prompt warning on quit (Ctrl+Q)
   - [ ] Basic editing (insert, delete, backspace)
   - [ ] Handle cursor movement (arrow keys / hjkl)
   - [ ] Scrolling (when text overflows terminal)
@@ -19,10 +20,10 @@
   - [ ] Syntax highlighting (basic, e.g., keywords, comments)
 
 - ## Quality of Life
-  - [ ] Keybindings (Ctrl+Q to quit, Ctrl+S to save, etc.)
   - [ ] Configurable settings (tab size, color scheme)
   - [ ] Mouse support (optional via `ncurses` if terminal supports it)
   - [ ] Search (`/pattern` like in Vim)
+  - [ ] On command (Ctrl+Shift+S), save + close file and open current directory in terminal 
 
 - ## Optional / Future Features
   - [ ] Split view or multiple buffers
