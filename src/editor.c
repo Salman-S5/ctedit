@@ -41,11 +41,13 @@ int editor_init(char *filename) {
 
     initscr();
     raw();
-    keypad(stdscr, true);
     noecho();
+    keypad(stdscr, TRUE);
+    mousemask(ALL_MOUSE_EVENTS, NULL);
 
     while (1) {
         ch = getch();
+
 
         if (ch == 17) break; // Ctrl+Q
 
@@ -99,6 +101,14 @@ int editor_init(char *filename) {
             lines[posY][posX++] = ch;
             lines[posY][posX] = '\0';
             line_lengths[posY] = posX;
+        }
+
+        else if (ch == KEY_MOUSE) {
+            MEVENT mouse;
+            if (getmouse(&mouse) == OK) {
+                mvprintw(0, 0, "Mouse at row=%d, column=%d", mouse.y, mouse.x);
+                refresh();
+            }
         }
 
         clear();
