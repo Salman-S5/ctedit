@@ -40,11 +40,17 @@ int handle_max_line_check(int posY, int max_line_with_content) {
     }
 }
 
+void display_message(int posY, int posX, char *message) {
+    mvprintw(posY, posX, "%s", message);
+    clrtoeol();
+    refresh();
+}
+
 int editor_init(char *filename) {
     char *lines[MAX_LINES];
     int length_of_lines[MAX_LINES];
     int total_lines[MAX_LINES];
-    int max_line_with_content = -1;
+    int max_line_with_content = 0;
 
     for (int i = 0; i < MAX_LINES; i++) {
         lines[i] = malloc(INITIAL_LINE_CAPACITY);
@@ -70,7 +76,8 @@ int editor_init(char *filename) {
 
     while (1) {
         ch = getch();
-        mvprintw(20, 0, "%d", ch);
+        mvprintw(max_y - 1, 0, "%d", ch); 
+        
 
         switch (ch) {
             case KEY_LEFT:
@@ -78,7 +85,7 @@ int editor_init(char *filename) {
 
                 break;
             case KEY_RIGHT:
-                if (posX + 1 < length_of_lines[posY]) posX++; 
+                if (posX < length_of_lines[posY]) posX++; 
                 break;
             case KEY_DOWN:
                 if (posY + 1 < MAX_LINES) {
@@ -104,20 +111,19 @@ int editor_init(char *filename) {
 
         else if (ch == 19) {  // Ctrl+S 
             if (filename == NULL || filename[0] == '\0') {
-                mvprintw(max_y - 1, 0, "No filename specified. Save aborted.");
+                display_message(max_y - 1, 0, "No filename specified. Save aborted.");
             } else {
                 if (saveFile(filename, lines, posY + 1) == 0) {
-                    mvprintw(max_y - 1, 0, "File saved.");
+                    display_message(max_y - 1, 0, "File saved");
                 } else {
-                    mvprintw(max_y - 1, 0, "Error saving file.");
+                    display_message(max_y - 1, 0, "Error saving file");
                 }
             }
 
-            clrtoeol();
-            refresh();
             napms(1000);
-            move(posY, posX);
+            move(posY, 0);
             clrtoeol();
+            move(posY, posX);  
         }
 
 
@@ -140,7 +146,7 @@ int editor_init(char *filename) {
 
 
         else if (ch == '\n') { // Enter
-            posY = handle_max_line_check(posY, max_line_with_content);
+            max_line_with_content = handle_max_line_check(posY, max_line_with_content);
             posY++;
             posX = 0;
         }
@@ -156,10 +162,12 @@ int editor_init(char *filename) {
             posX++;
             lines[posY][posX] = '\0';
             length_of_lines[posY] = posX;
+
+            max_line_with_content = handle_max_line_check(posY, max_line_with_content);
         }
 
 
-        for (int i = 0; i <= MAX_LINES - 3; i++) { // Draw lines
+        for (int i = 0; i <= max_line_with_content; i++) { // Draw lines
             mvprintw(i, 0, "%s", lines[i]);
             clrtoeol();
         }
@@ -169,7 +177,7 @@ int editor_init(char *filename) {
         refresh();
     }
 
-    for (int i = 0; max_y < i < max_line_with_content; i++) {
+    for (int i = 0; i < MAX_LINES; i++) {
         free(lines[i]);
     }
     
