@@ -6,7 +6,7 @@
 
 int editor_init(char *filename);
 int saveFile(const char *filename, char **lines, int lineCount);
-
+void cleanup();
 
 
 

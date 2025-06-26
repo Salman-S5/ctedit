@@ -8,7 +8,7 @@
   - [x] File saving (with Ctrl+S)
   - [ ] Prompt warning on quit (Ctrl+Q)
   - [ ] Basic editing (insert, delete, backspace)
-  - [ ] Handle cursor movement (arrow keys / hjkl)
+  - [x] Handle cursor movement (arrow keys / hjkl)
   - [ ] Scrolling (when text overflows terminal)
 
 ## Extras
@@ -21,7 +21,6 @@
 
 - ## Quality of Life
   - [ ] Configurable settings (tab size, color scheme)
-  - [ ] Mouse support (optional via `ncurses` if terminal supports it)
   - [ ] Search (`/pattern` like in Vim)
   - [ ] On command (Ctrl+Shift+S), save + close file and open current directory in terminal 
 

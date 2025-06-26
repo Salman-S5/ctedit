@@ -1,4 +1,5 @@
-a = 3
-b = 34
-
-print(a+b)
+asd
+asd
+as
+da
+sdasd
