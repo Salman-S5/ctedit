@@ -62,7 +62,7 @@ int editor_init(char *filename) {
     int ch;
     int posY = 0;
     int posX = 0;
-
+    
 
     initscr();
     raw();
@@ -70,15 +70,19 @@ int editor_init(char *filename) {
     keypad(stdscr, TRUE);
 
     int max_y, max_x;
-    getmaxyx(stdscr, max_y, max_x);
-
+    
     refresh();
 
     while (1) {
         ch = getch();
+    
+        getmaxyx(stdscr, max_y, max_x);
+        FILE *debug = fopen("debug.log", "a");
+        fprintf(debug, "%d x %d\n", max_y, max_x);
+        fclose(debug);
+
         mvprintw(max_y - 1, 0, "%d", ch); 
         
-
         switch (ch) {
             case KEY_LEFT:
                 if (posX > 0) posX--;
@@ -109,14 +113,15 @@ int editor_init(char *filename) {
 
         if (ch == 17) break; // Ctrl+Q
 
-        else if (ch == 19) {  // Ctrl+S 
+        else if (ch == 19) { // Crtl + S 
+            int msg_pos_x = 0;
             if (filename == NULL || filename[0] == '\0') {
-                display_message(max_y - 1, 0, "No filename specified. Save aborted.");
+                display_message(max_y - 1, msg_pos_x, "No filename specified. Save aborted.");
             } else {
                 if (saveFile(filename, lines, posY + 1) == 0) {
-                    display_message(max_y - 1, 0, "File saved");
+                    display_message(max_y - 1, msg_pos_x, "File saved");
                 } else {
-                    display_message(max_y - 1, 0, "Error saving file");
+                    display_message(max_y - 1, msg_pos_x, "Error saving file");
                 }
             }
 
@@ -126,8 +131,7 @@ int editor_init(char *filename) {
             move(posY, posX);  
         }
 
-
-        else if (ch == KEY_BACKSPACE || ch == 127 || ch == 8) { // Backspace
+        else if (ch == KEY_BACKSPACE || ch == 127 || ch == 8) {
             if (posX > 0) {
                 posX--;
                 lines[posY][posX] = '\0';
@@ -145,14 +149,14 @@ int editor_init(char *filename) {
         }
 
 
-        else if (ch == '\n') { // Enter
+        else if (ch == '\n') {
             max_line_with_content = handle_max_line_check(posY, max_line_with_content);
             posY++;
             posX = 0;
         }
         
 
-        else if (ch >= 32 && ch <= 126) { // Text
+        else if (ch >= 32 && ch <= 126) {
             if (posX >= total_lines[posY] - 1) {
                 total_lines[posY] *= 2;
                 lines[posY] = realloc(lines[posY], total_lines[posY]);
@@ -167,7 +171,8 @@ int editor_init(char *filename) {
         }
 
 
-        for (int i = 0; i <= max_line_with_content; i++) { // Draw lines
+        // Draws lines
+        for (int i = 0; i <= max_line_with_content; i++) {
             mvprintw(i, 0, "%s", lines[i]);
             clrtoeol();
         }
@@ -180,7 +185,6 @@ int editor_init(char *filename) {
     for (int i = 0; i < MAX_LINES; i++) {
         free(lines[i]);
     }
-    
     signal(SIGSEGV, handle_sigsegv);
     atexit(cleanup);
     return 0;

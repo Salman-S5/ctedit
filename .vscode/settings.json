@@ -5,5 +5,13 @@
         "format": "c",
         "stdlib.h": "c",
         "ncurses.h": "c"
-    }
+    },
+    "blockHighlighter.multiLineCommentEnd": [
+
+        "*/"
+    ],
+    "clangd.arguments": [
+        "--pretty=false"
+    ]
+
 }
