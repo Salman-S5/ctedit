@@ -16,6 +16,15 @@ void handle_winch(int sig) {
 
 // TODO: Create struct for EditorState data to reduce 
 
+typedef struct {
+    int pos_y, pos_x;
+    int max_y, max_x;
+    char *lines[MAX_LINES];
+    int length_of_lines[MAX_LINES];
+    int total_lines[MAX_LINES];
+    int max_line_with_content;
+} EditorState;
+
 int saveFile(const char *filename, char **lines, int lineCount) {
     FILE *fp = fopen(filename, "w");
     if (!fp) {
@@ -33,6 +42,13 @@ int saveFile(const char *filename, char **lines, int lineCount) {
 
 void cleanup() {
     endwin();
+}
+
+void free_mem(EditorState *state) {
+    for (size_t i = 0; i < sizeof(LINES); i++) {
+        free(state->lines[i]);
+    }
+    free(state);
 }
 
 void handle_sigsegv(int sig) {
@@ -54,193 +70,191 @@ void display_message(int pos_y, int pos_x, char *message) {
     refresh();
 }
 
-void check_if_window_resized(int max_x, int max_y) {
+void check_if_window_resized(EditorState *state) {
     if (window_resized) {
         refresh();
         clear();
-        getmaxyx(stdscr, max_y, max_x);
+        getmaxyx(stdscr, state->max_y, state->max_x);
         // debug
         FILE *debug = fopen("debug.log", "a");
-        fprintf(debug, "window resized: %d x %d\n", max_y, max_x);
+        fprintf(debug, "window resized: %d x %d\n", state->max_y, state->max_x);
         fclose(debug);
         window_resized = 0;
     }
 }
 
-void handle_cursor_movement(int ch, int *pos_x, int *pos_y, int *length_of_lines, int *max_y) {
+void handle_cursor_movement(int ch, EditorState *state) {
+    int y = state->pos_y;
+    int x = state->pos_x;
     switch (ch) {
         case KEY_LEFT:
-            if (*pos_x > 0) (*pos_x)--;
-
+            if (state->pos_x > 0) (x)--;
             break;
         case KEY_RIGHT:
-            if (*pos_x < length_of_lines[*pos_y]) (*pos_x)++; 
+            if (x < state->length_of_lines[y]) (x)++; 
             break;
         case KEY_DOWN:
-            if (*pos_y + 1 < MAX_LINES) {
-                (*pos_y)++;
+            if (y + 1 < MAX_LINES) {
+                (y)++;
 
-                if (*pos_y + 3 > *max_y) {
-                    *max_y += 1;
+                if (y + 3 > state->max_y) {
+                    state->max_y += 1;
                 }
-
                 // debug
                 FILE *debug = fopen("debug.log", "a");
-                fprintf(debug, "pos_y: %d, max_y: %d\n", *pos_y, *max_y);
+                fprintf(debug, "pos_y: %d, max_y: %d\n", y, state->max_y);
                 fclose(debug);
 
-
-                if (*pos_x > length_of_lines[*pos_y]) {
-                    *pos_x = length_of_lines[*pos_y];
+                if (x > state->length_of_lines[y]) {
+                    x = state->length_of_lines[y];
                 }
             }
             break;
         case KEY_UP:
-            if (*pos_y > 0) {
-                (*pos_y)--;
+            if (y > 0) {
+                (y)--;
 
-                if (*pos_x > length_of_lines[*pos_y]) {
-                    *pos_x = length_of_lines[*pos_y];
+                if (x > state->length_of_lines[y]) {
+                    x = state->length_of_lines[y];
                 }
             }
             break;
     }
 }
 
-
-int handle_command(int ch, char *file_name, int *pos_x, int *pos_y, int *max_y, char **lines, int *max_line_with_content, int *length_of_lines) {
+int handle_command(int ch, char *file_name, EditorState *state) {
     // TODO: Convert to switch statement
-    
-    if (ch == 17) return 1; // Ctrl+Q
-
-    else if (ch == 19) { // Ctrl + S 
-        int msg_pos_x = 0;
-        int msg_pos_y = *max_y - 1;
-        if (file_name == NULL || file_name[0] == '\0') {
-            display_message(msg_pos_y, msg_pos_x, "No filename specified. Save aborted.");
-        } else {
-            if (saveFile(file_name, lines, *pos_y + 1) == 0) {
-                display_message(msg_pos_y, msg_pos_x, "File saved");
+    int y = state->pos_y;
+    int x = state->pos_x;
+    switch(ch) {
+        case 17:
+            return 1;
+            break;
+        case 19:
+            int msg_pos_x = 0;
+            int msg_pos_y = state->max_y - 1;
+            if (file_name == NULL || file_name[0] == '\0') {
+                display_message(msg_pos_y, msg_pos_x, "No filename specified. Save aborted.");
             } else {
-                display_message(msg_pos_y, msg_pos_x, "Error saving file");
+                if (saveFile(file_name, state->lines, y + 1) == 0) {
+                    display_message(msg_pos_y, msg_pos_x, "File saved");
+                } else {
+                    display_message(msg_pos_y, msg_pos_x, "Error saving file");
+                }
             }
-        }
-
-        napms(1000);
-        move(*pos_y, 0);
-        clrtoeol();
-        move(*pos_y, *pos_x);  
-    }
-
-    else if (ch == KEY_BACKSPACE || ch == 127 || ch == 8) {
-        if (*pos_x > 0) {
-            (*pos_x)--;
-            lines[*pos_y][*pos_x] = '\0';
-            length_of_lines[*pos_y] = *pos_x;
-        }
-        else if (*pos_y > 0) {
-            (*pos_y)--;
-            *pos_x = length_of_lines[*pos_y];
-            if (pos_x > 0) {
-                lines[*pos_y][*pos_x] = '\0';
-                (*pos_x)--;
-                length_of_lines[*pos_y] = *pos_x;
+        
+            napms(1000);
+            move(y, 0);
+            clrtoeol();
+            move(y, x);  
+            
+            break;
+        case KEY_BACKSPACE || 127 || 8:
+            if (x > 0) {
+                x--;
+                state->lines[y][x] = '\0';
+                state->length_of_lines[y] = x;
             }
-        }
+            else if (y > 0) {
+                (y)--;
+                x = state->length_of_lines[y];
+                if (x > 0) {
+                    state->lines[y][x] = '\0';
+                    x--;
+                    state->length_of_lines[y] = x;
+                }
+            }
+
+            break;
+        case '\n':
+            state->max_line_with_content = handle_max_line_check(y, state->max_line_with_content);
+            y++;
+            x = 0;
     }
 
-    else if (ch == '\n') {
-        *max_line_with_content = handle_max_line_check(*pos_y, *max_line_with_content);
-        (*pos_y)++;
-        *pos_x = 0;
-    }
+    return 0;
 }
 
-void handle_text_input(
-    int ch, 
-    int *pos_x, 
-    int *pos_y, 
-    int *total_lines, 
-    int *length_of_lines, 
-    char **lines, 
-    int *max_line_with_content
-) {
+void handle_text_input(int ch, EditorState *state) {
     if (ch >= 32 && ch <= 126) {
-        if (*pos_x >= total_lines[*pos_y] - 1) {
-            total_lines[*pos_y] *= 2;
-            lines[*pos_y] = realloc(lines[*pos_y], total_lines[*pos_y]);
+        int y = state->pos_y;
+        int x = state->pos_x;
+        if (x >= state->total_lines[y] - 1) {
+            state->total_lines[y] *= 2;
+            state->lines[y] = realloc(state->lines[y], state->total_lines[y]);
         }
 
-        lines[*pos_y][*pos_x] = ch;
-        (*pos_x)++;
-        lines[*pos_y][*pos_x] = '\0';
-        length_of_lines[*pos_y] = *pos_x;
+        state->lines[y][x] = ch;
+        x++;
+        state->lines[y][x] = '\0';
+        state->length_of_lines[y] = x;
 
-        *max_line_with_content = handle_max_line_check(*pos_y, *max_line_with_content);
+        state->max_line_with_content = handle_max_line_check(y, state->max_line_with_content);
     }
 }
 
-int editor_init(char *filename) {
+void render_editor(EditorState *state) {
+    // Draws lines
+    if (state->pos_x < state->max_y) {
+        for (int i = 0; i <= state->max_line_with_content; i++) {
+            mvprintw(i, 0, "%s", state->lines[i]);
+            clrtoeol();
+        }
+    } else {
+        for (int i = state->pos_x - state->max_y; i <= state->max_line_with_content; i++) {
+            mvprintw(i, 0, "%s", state->lines[i]);
+            clrtoeol();
+        }
+    }
+}
+
+int editor_init(char *file_name) {
+    EditorState *state = malloc(sizeof(EditorState));
+    if (state == NULL) return -1;
+    
     char *lines[MAX_LINES];
     int length_of_lines[MAX_LINES];
     int total_lines[MAX_LINES];
-    int max_line_with_content = 0;
+    int ch;
+
+    state->max_line_with_content = 0;
+    state->pos_y = 0;
+    state->pos_x = 0;
 
     for (int i = 0; i < MAX_LINES; i++) {
-        lines[i] = malloc(INITIAL_LINE_CAPACITY);
-        lines[i][0] = '\0';
-        total_lines[i] = INITIAL_LINE_CAPACITY;
-        length_of_lines[i] = 0;
+        state->lines[i] = malloc(INITIAL_LINE_CAPACITY);
+        state->lines[i][0] = '\0';
+        state->total_lines[i] = INITIAL_LINE_CAPACITY;
+        state->length_of_lines[i] = 0;
     }
 
-    int ch;
-    int pos_y = 0;
-    int pos_x = 0;
-    
     initscr();
     signal(SIGWINCH, handle_winch);
     raw();
     noecho();
     keypad(stdscr, TRUE);
 
-    int max_y, max_x;
-    getmaxyx(stdscr, max_y, max_x);
+    getmaxyx(stdscr, state->max_y, state->max_x);
 
     refresh();
 
     while (1) {
-        check_if_window_resized(max_x, max_y);
+        check_if_window_resized(state);
 
         ch = getch();
 
-        mvprintw(max_y - 1, 0, "%d", ch); 
+        mvprintw(state->max_y - 1, 0, "%d", ch); 
         
-        handle_cursor_movement(ch, &pos_x, &pos_y, length_of_lines, &max_y);
+        handle_cursor_movement(ch, state);
+        handle_text_input(ch, state);
+        handle_command(ch, file_name, state);
+        render_editor(state);
 
-
-
-        handle_text_input(ch, &pos_x, &pos_y, total_lines, length_of_lines, lines, &max_line_with_content);
-
-        // Draws lines
-        if (pos_x < max_y) {
-            for (int i = 0; i <= max_line_with_content; i++) {
-                mvprintw(i, 0, "%s", lines[i]);
-                clrtoeol();
-            }
-        } else {
-            for (int i = pos_x - max_y; i <= max_line_with_content; i++) {
-                mvprintw(i, 0, "%s", lines[i]);
-                clrtoeol();
-            }
-        }
-
-        move(pos_y, pos_x);    
+        move(state->pos_y, state->pos_x);    
         refresh();
     }
 
-    for (int i = 0; i < MAX_LINES; i++) {
-        free(lines[i]);
-    }
+    free_mem(state);
     signal(SIGSEGV, handle_sigsegv);
     atexit(cleanup);
     return 0;
