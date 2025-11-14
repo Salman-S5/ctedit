@@ -17,8 +17,6 @@ void handle_winch(int sig) {
     window_resized = 1;
 }
 
-// TODO: Create struct for EditorState data to reduce 
-
 typedef struct {
     int pos_y, pos_x; // cursor positions
     int max_y, max_x; // window sizes
@@ -144,10 +142,32 @@ void handle_cursor_movement(int ch, EditorState *state) {
     }
 }
 
+void handle_text_input(int ch, EditorState *state) {
+    if (ch >= 32 && ch <= 126) {
+        int y = state->pos_y;
+        int x = state->pos_x;
+        if (x >= state->total_lines[y] - 1) {
+            state->total_lines[y] *= 2;
+            state->lines[y] = realloc(state->lines[y], state->total_lines[y]);
+        }
+
+        
+        for (int i=state->length_of_lines[y]; i>x; i--) {
+            state->lines[y][i] = state->lines[y][i - 1];
+        }
+        state->lines[y][x] = ch;
+        x++;
+        state->pos_x = x;
+        state->length_of_lines[y]++;
+        
+        state->max_line_with_content = handle_max_line_check(y, state->max_line_with_content);
+    }
+}
+
 int handle_command(int ch, char *file_name, EditorState *state) {
     int y = state->pos_y;
     int x = state->pos_x;
-    // print("%d\n", ch);
+    print("%d\n", ch);
     switch(ch) {
         case 17:
             print("Quitting...\n");
@@ -212,38 +232,41 @@ int handle_command(int ch, char *file_name, EditorState *state) {
             state->max_line_with_content = handle_max_line_check(y, state->max_line_with_content);
             state->pos_y++;
             state->pos_x = 0;
+            break;
+        case 9:
+            int spaces = 4;
+            while (spaces--) {
+                handle_text_input(32, state);
+            }
+            break;
         case CTRL_A:
             print("max_y: %d\n", state->max_y);
+            break;
+        case KEY_MOUSE:
+            MEVENT event;
+            if (getmouse(&event) == OK) {
+                // print("bstate: %lu\n", event.bstate);
+                if (event.bstate & BUTTON4_PRESSED) { // scroll up
+                    if (state->viewport_offset > 0) {
+                        state->viewport_offset--;
+                        // print("scrolling up");
+                    }
+                }
+                else if (event.bstate & BUTTON5_PRESSED) { // scroll down
+                    if (state->viewport_offset < state->max_line_with_content + 5) {
+                        state->viewport_offset++;
+                        // print("scrolling down");
+                    }
+                }
+            }
             break;
     }
 
     return 0;
 }
 
-void handle_text_input(int ch, EditorState *state) {
-    if (ch >= 32 && ch <= 126) {
-        int y = state->pos_y;
-        int x = state->pos_x;
-        if (x >= state->total_lines[y] - 1) {
-            state->total_lines[y] *= 2;
-            state->lines[y] = realloc(state->lines[y], state->total_lines[y]);
-        }
 
-        // state->lines[y][x] = '\0';
-        // state->lines[state->total_lines[y]] = '\0';
-        for (int i=state->length_of_lines[y]; i>x; i--) {
-            state->lines[y][i] = state->lines[y][i - 1];
-        }
-        state->lines[y][x] = ch;
-        x++;
-        state->pos_x = x;
-        state->length_of_lines[y]++;
-        
-        state->max_line_with_content = handle_max_line_check(y, state->max_line_with_content);
-    }
-}
 
-// TODO: scroll not rendered properly hint: restart 
 void render_editor(EditorState *state) {
     // any reason for a base case?
     int screen_row = 0;
@@ -293,27 +316,8 @@ int editor_init(char *file_name) {
         // mvprintw(state->max_y - 1, 0, "%d", ch); 
         // clrtoeol();
 
-        if (ch == KEY_MOUSE) {
-            MEVENT event;
-            if (getmouse(&event) == OK) {
-                // print("bstate: %lu\n", event.bstate);
-                if (event.bstate & BUTTON4_PRESSED) { // scroll up
-                    if (state->viewport_offset > 0) {
-                        state->viewport_offset--;
-                        // print("scrolling up");
-                    }
-                }
-                else if (event.bstate & BUTTON5_PRESSED) { // scroll down
-                    if (state->viewport_offset < state->max_line_with_content + 5) {
-                        state->viewport_offset++;
-                        // print("scrolling down");
-                    }
-                }
-            }
-        }
-
-        print("first line index: %d\n", state->viewport_offset);
-        print("last line index: %d\n", state->viewport_offset+state->max_y-2);
+        // print("first line index: %d\n", state->viewport_offset);
+        // print("last line index: %d\n", state->viewport_offset+state->max_y-2);
         
         handle_cursor_movement(ch, state);
         handle_text_input(ch, state);
