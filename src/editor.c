@@ -8,6 +8,9 @@
 #define MAX_LINES 100
 #define INITIAL_LINE_CAPACITY 100
 
+#define CTRL_A ('a' & 0x1F)
+#define CTRL_B ('b' & 0x1F)
+
 volatile sig_atomic_t window_resized = 0;
 
 void handle_winch(int sig) {
@@ -17,8 +20,9 @@ void handle_winch(int sig) {
 // TODO: Create struct for EditorState data to reduce 
 
 typedef struct {
-    int pos_y, pos_x;
-    int max_y, max_x;
+    int pos_y, pos_x; // cursor positions
+    int max_y, max_x; // window sizes
+    int viewport_offset; // top line being displayed
     char *lines[MAX_LINES];
     int length_of_lines[MAX_LINES];
     int total_lines[MAX_LINES];
@@ -98,21 +102,24 @@ void check_if_window_resized(EditorState *state) {
 void handle_cursor_movement(int ch, EditorState *state) {
     switch (ch) {
         case KEY_LEFT:
+        case 104:
             print("x: %d, before left press", state->pos_x);
             if (state->pos_x > 0) state->pos_x--;
             print(" '\' KEY_LEFT Pressed x=%d\n", state->pos_x);
             break;
         case KEY_RIGHT:
+        case 108:
             print("x: %d, before right press", state->pos_x);
             if (state->pos_x < state->length_of_lines[state->pos_y]-1) state->pos_x++; 
             print(" '\' KEY_RIGHT Pressed x=%d\n", state->pos_x);
             
             break;
         case KEY_DOWN:
+        case 107:
             if (state->pos_y + 1 < MAX_LINES) {
                 state->pos_y++;
 
-                if (state->pos_y + 3 > state->max_y) {
+                if (state->pos_y + 2 > state->max_y) {
                     state->max_y += 1;
                 }
                 print("pos_y: %d, max_y: %d\n", state->pos_y, state->max_y);
@@ -123,8 +130,11 @@ void handle_cursor_movement(int ch, EditorState *state) {
             }
             break;
         case KEY_UP:
+        case 106:
             if (state->pos_y > 0) {
                 state->pos_y--;
+
+                print("pos_y: %d, max_y: %d\n", state->pos_y, state->max_y);
 
                 if (state->pos_x > state->length_of_lines[state->pos_y]) {
                     state->pos_x = state->length_of_lines[state->pos_y];
@@ -137,7 +147,7 @@ void handle_cursor_movement(int ch, EditorState *state) {
 int handle_command(int ch, char *file_name, EditorState *state) {
     int y = state->pos_y;
     int x = state->pos_x;
-    print("%d\n", ch);
+    // print("%d\n", ch);
     switch(ch) {
         case 17:
             print("Quitting...\n");
@@ -202,6 +212,9 @@ int handle_command(int ch, char *file_name, EditorState *state) {
             state->max_line_with_content = handle_max_line_check(y, state->max_line_with_content);
             state->pos_y++;
             state->pos_x = 0;
+        case CTRL_A:
+            print("max_y: %d\n", state->max_y);
+            break;
     }
 
     return 0;
@@ -230,21 +243,16 @@ void handle_text_input(int ch, EditorState *state) {
     }
 }
 
-// TODO: scroll not rendered properly
+// TODO: scroll not rendered properly hint: restart 
 void render_editor(EditorState *state) {
-    // Draws lines
-    if (state->pos_x < state->max_x) {
-        for (int i = 0; i <= state->max_line_with_content; i++) {
-            mvprintw(i, 0, "%s", state->lines[i]);
-            clrtoeol();
-        }
-    } else {
-        for (int i = state->pos_x - state->max_x; i <= state->max_line_with_content; i++) {
-            mvprintw(i, 0, "%s", state->lines[i]);
-            clrtoeol();
-        }
+    // any reason for a base case?
+    int screen_row = 0;
+    for (int i=state->viewport_offset; i<state->viewport_offset+state->max_y-2; i++) {
+        mvprintw(screen_row, 0, "%s", state->lines[i]);
+        clrtoeol();
+        screen_row++;
     }
-
+    refresh();
 }
 
 int editor_init(char *file_name) {
@@ -269,20 +277,43 @@ int editor_init(char *file_name) {
     signal(SIGWINCH, handle_winch);
     raw();
     noecho();
+    mousemask(ALL_MOUSE_EVENTS | REPORT_MOUSE_POSITION, NULL);
     keypad(stdscr, TRUE);
 
     getmaxyx(stdscr, state->max_y, state->max_x);
-
+    
+    
     refresh();
-
+    
     while (1) {
         check_if_window_resized(state);
-
+        
         ch = getch();
-
+        
         // mvprintw(state->max_y - 1, 0, "%d", ch); 
         // clrtoeol();
 
+        if (ch == KEY_MOUSE) {
+            MEVENT event;
+            if (getmouse(&event) == OK) {
+                // print("bstate: %lu\n", event.bstate);
+                if (event.bstate & BUTTON4_PRESSED) { // scroll up
+                    if (state->viewport_offset > 0) {
+                        state->viewport_offset--;
+                        // print("scrolling up");
+                    }
+                }
+                else if (event.bstate & BUTTON5_PRESSED) { // scroll down
+                    if (state->viewport_offset < state->max_line_with_content + 5) {
+                        state->viewport_offset++;
+                        // print("scrolling down");
+                    }
+                }
+            }
+        }
+
+        print("first line index: %d\n", state->viewport_offset);
+        print("last line index: %d\n", state->viewport_offset+state->max_y-2);
         
         handle_cursor_movement(ch, state);
         handle_text_input(ch, state);
@@ -292,7 +323,7 @@ int editor_init(char *file_name) {
         mvprintw(state->max_y - 1, 0, "x: %d y: %d", state->pos_x, state->pos_y); 
         clrtoeol();
 
-        move(state->pos_y, state->pos_x);    
+        move(state->pos_y - state->viewport_offset, state->pos_x);    
         refresh();
     }
 
