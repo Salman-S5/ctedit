@@ -135,14 +135,16 @@ void handle_cursor_movement(int ch, EditorState *state) {
 }
 
 int handle_command(int ch, char *file_name, EditorState *state) {
-    // TODO: Convert to switch statement
     int y = state->pos_y;
     int x = state->pos_x;
+    print("%d\n", ch);
     switch(ch) {
         case 17:
+            print("Quitting...\n");
             return 1;
             break;
         case 19:
+            print("Attempting file save...\n");
             int msg_pos_x = 0;
             int msg_pos_y = state->max_y - 1;
             if (file_name == NULL || file_name[0] == '\0') {
@@ -161,27 +163,45 @@ int handle_command(int ch, char *file_name, EditorState *state) {
             move(y, x);  
             
             break;
-        case KEY_BACKSPACE || 127 || 8:
+        case KEY_BACKSPACE:
+        case 127:
+        case 8:
+            print("Attempting ch deletion...\n");
             if (x > 0) {
-                x--;
-                state->lines[y][x] = '\0';
-                state->length_of_lines[y] = x;
+                if (x == state->length_of_lines[y]) {
+                    state->lines[y][x-1] = '\0';
+                    state->length_of_lines[y]--;
+                    state->pos_x--;
+                }
+                else {
+                    for (int i=x-1; i < state->length_of_lines[y]; i++) {
+                        state->lines[y][i] = state->lines[y][i + 1];
+                    }
+
+                    // state->lines[y][x] = '\0';
+                    
+                    state->length_of_lines[y]--;
+                    state->pos_x--;
+                }
             }
             else if (y > 0) {
-                (y)--;
+                y--;
+                state->pos_y = y;
                 x = state->length_of_lines[y];
                 if (x > 0) {
                     state->lines[y][x] = '\0';
                     x--;
+                    state->pos_x = x;
                     state->length_of_lines[y] = x;
                 }
             }
 
             break;
         case '\n':
+            print("Attempting next line...\n");
             state->max_line_with_content = handle_max_line_check(y, state->max_line_with_content);
-            y++;
-            x = 0;
+            state->pos_y++;
+            state->pos_x = 0;
     }
 
     return 0;
@@ -210,6 +230,7 @@ void handle_text_input(int ch, EditorState *state) {
     }
 }
 
+// TODO: scroll not rendered properly
 void render_editor(EditorState *state) {
     // Draws lines
     if (state->pos_x < state->max_x) {
@@ -231,6 +252,7 @@ int editor_init(char *file_name) {
     if (state == NULL) return -1;
 
     int ch;
+    // print("%s\n", ch);
 
     state->max_line_with_content = 0;
     state->pos_y = 0;
@@ -264,9 +286,8 @@ int editor_init(char *file_name) {
         
         handle_cursor_movement(ch, state);
         handle_text_input(ch, state);
-        render_editor(state);
-        
         if (handle_command(ch, file_name, state) == 1) break;
+        render_editor(state);
         
         mvprintw(state->max_y - 1, 0, "x: %d y: %d", state->pos_x, state->pos_y); 
         clrtoeol();
