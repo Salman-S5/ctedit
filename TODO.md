@@ -27,5 +27,4 @@
 - ## Optional / Future Features
   - [ ] Split view or multiple buffers
   - [ ] Plugin system or scripting hooks
-  - [ ] Macro recording & replay
   - [ ] UTF-8/multibyte character support

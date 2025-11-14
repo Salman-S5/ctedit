@@ -64,6 +64,18 @@ int handle_max_line_check(int pos_y, int max_line_with_content) {
     }
 }
 
+void print(const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+    FILE *debug = fopen("debug.log", "a");
+    if (debug == NULL) {
+        perror("Failed to open file");
+    }
+    vfprintf(debug, format, args);
+    fclose(debug);
+    va_end(args);
+}
+
 void display_message(int pos_y, int pos_x, char *message) {
     mvprintw(pos_y, pos_x, "%s", message);
     clrtoeol();
@@ -84,38 +96,38 @@ void check_if_window_resized(EditorState *state) {
 }
 
 void handle_cursor_movement(int ch, EditorState *state) {
-    int y = state->pos_y;
-    int x = state->pos_x;
     switch (ch) {
         case KEY_LEFT:
-            if (state->pos_x > 0) (x)--;
+            print("x: %d, before left press", state->pos_x);
+            if (state->pos_x > 0) state->pos_x--;
+            print(" '\' KEY_LEFT Pressed x=%d\n", state->pos_x);
             break;
         case KEY_RIGHT:
-            if (x < state->length_of_lines[y]) (x)++; 
+            print("x: %d, before right press", state->pos_x);
+            if (state->pos_x < state->length_of_lines[state->pos_y]-1) state->pos_x++; 
+            print(" '\' KEY_RIGHT Pressed x=%d\n", state->pos_x);
+            
             break;
         case KEY_DOWN:
-            if (y + 1 < MAX_LINES) {
-                (y)++;
+            if (state->pos_y + 1 < MAX_LINES) {
+                state->pos_y++;
 
-                if (y + 3 > state->max_y) {
+                if (state->pos_y + 3 > state->max_y) {
                     state->max_y += 1;
                 }
-                // debug
-                FILE *debug = fopen("debug.log", "a");
-                fprintf(debug, "pos_y: %d, max_y: %d\n", y, state->max_y);
-                fclose(debug);
+                print("pos_y: %d, max_y: %d\n", state->pos_y, state->max_y);
 
-                if (x > state->length_of_lines[y]) {
-                    x = state->length_of_lines[y];
+                if (state->pos_x > state->length_of_lines[state->pos_y]) {
+                    state->pos_x = state->length_of_lines[state->pos_y];
                 }
             }
             break;
         case KEY_UP:
-            if (y > 0) {
-                (y)--;
+            if (state->pos_y > 0) {
+                state->pos_y--;
 
-                if (x > state->length_of_lines[y]) {
-                    x = state->length_of_lines[y];
+                if (state->pos_x > state->length_of_lines[state->pos_y]) {
+                    state->pos_x = state->length_of_lines[state->pos_y];
                 }
             }
             break;
@@ -184,37 +196,40 @@ void handle_text_input(int ch, EditorState *state) {
             state->lines[y] = realloc(state->lines[y], state->total_lines[y]);
         }
 
+        // state->lines[y][x] = '\0';
+        // state->lines[state->total_lines[y]] = '\0';
+        for (int i=state->length_of_lines[y]; i>x; i--) {
+            state->lines[y][i] = state->lines[y][i - 1];
+        }
         state->lines[y][x] = ch;
         x++;
-        state->lines[y][x] = '\0';
-        state->length_of_lines[y] = x;
-
+        state->pos_x = x;
+        state->length_of_lines[y]++;
+        
         state->max_line_with_content = handle_max_line_check(y, state->max_line_with_content);
     }
 }
 
 void render_editor(EditorState *state) {
     // Draws lines
-    if (state->pos_x < state->max_y) {
+    if (state->pos_x < state->max_x) {
         for (int i = 0; i <= state->max_line_with_content; i++) {
             mvprintw(i, 0, "%s", state->lines[i]);
             clrtoeol();
         }
     } else {
-        for (int i = state->pos_x - state->max_y; i <= state->max_line_with_content; i++) {
+        for (int i = state->pos_x - state->max_x; i <= state->max_line_with_content; i++) {
             mvprintw(i, 0, "%s", state->lines[i]);
             clrtoeol();
         }
     }
+
 }
 
 int editor_init(char *file_name) {
     EditorState *state = malloc(sizeof(EditorState));
     if (state == NULL) return -1;
-    
-    char *lines[MAX_LINES];
-    int length_of_lines[MAX_LINES];
-    int total_lines[MAX_LINES];
+
     int ch;
 
     state->max_line_with_content = 0;
@@ -243,12 +258,18 @@ int editor_init(char *file_name) {
 
         ch = getch();
 
-        mvprintw(state->max_y - 1, 0, "%d", ch); 
+        // mvprintw(state->max_y - 1, 0, "%d", ch); 
+        // clrtoeol();
+
         
         handle_cursor_movement(ch, state);
         handle_text_input(ch, state);
-        handle_command(ch, file_name, state);
         render_editor(state);
+        
+        if (handle_command(ch, file_name, state) == 1) break;
+        
+        mvprintw(state->max_y - 1, 0, "x: %d y: %d", state->pos_x, state->pos_y); 
+        clrtoeol();
 
         move(state->pos_y, state->pos_x);    
         refresh();
