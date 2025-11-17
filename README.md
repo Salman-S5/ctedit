@@ -14,4 +14,4 @@ e.g. make run FILE="test.txt"
 - Functional viewport scrolling
 - Commands:
   - CTRL+q: quit
-  - CTRL+s: quit
+  - CTRL+s: save file
